@@ -1,0 +1,227 @@
+{
+  "project": "CollabBoard",
+  "branchName": "ralph/mvp-whiteboard",
+  "description": "Collaborative Whiteboard MVP - A hand-drawn style online whiteboard similar to Excalidraw, with basic drawing tools, element manipulation, and local persistence. MVP focuses on single-user functionality.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Initialize React project scaffold",
+      "description": "As a developer, I need a Vite + React + TypeScript + Tailwind project scaffolded so I can build the whiteboard.",
+      "acceptanceCriteria": [
+        "Run `npm create vite@latest . -- --template react-ts` in project root",
+        "Install and configure Tailwind CSS",
+        "Remove default boilerplate, add a blank white canvas area",
+        "npm run dev starts successfully, page renders blank white canvas",
+        "Typecheck passes",
+        "npm run build succeeds"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Define element data types and store",
+      "description": "As a developer, I need TypeScript interfaces and a simple state store for canvas elements so other features can reference them.",
+      "acceptanceCriteria": [
+        "Define Element interface with: id, type (freehand|rectangle|arrow|text), x, y, width, height, points (for freehand), text (for text), strokeColor, strokeWidth, backgroundColor",
+        "Create a simple store (React Context or Zustand) that holds an array of elements",
+        "Export store and types from a single entry point",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement canvas renderer",
+      "description": "As a developer, I need an HTML5 Canvas component that renders elements from the store so I can see drawings.",
+      "acceptanceCriteria": [
+        "Create Canvas component using HTML5 Canvas API",
+        "Render rectangle elements as filled/outlined rects",
+        "Render freehand elements as connected line segments",
+        "Re-render on store changes (useEffect on elements array)",
+        "Canvas fills the viewport",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add toolbar with tool selection",
+      "description": "As a user, I want a toolbar with drawing tool buttons so I can choose what to draw.",
+      "acceptanceCriteria": [
+        "Fixed toolbar at the top or left of screen",
+        "Buttons for: Select, Freehand, Rectangle, Arrow, Text",
+        "Active tool highlighted visually",
+        "Store current tool in store state",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implement freehand drawing",
+      "description": "As a user, I want to draw freehand lines on the canvas so I can sketch ideas.",
+      "acceptanceCriteria": [
+        "mousedown+mousemove+mouseup creates a freehand element with recorded points",
+        "Lines render with hand-drawn style (slight wobble or smooth curves)",
+        "Default stroke color: black, width: 2",
+        "Element added to store on mouseup",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implement rectangle drawing",
+      "description": "As a user, I want to draw rectangles on the canvas so I can create boxes and containers.",
+      "acceptanceCriteria": [
+        "mousedown+mousemove shows live rectangle preview",
+        "mouseup creates rectangle element with correct x, y, width, height",
+        "Rectangle renders with outline (no fill by default)",
+        "Element added to store on mouseup",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement arrow/line drawing",
+      "description": "As a user, I want to draw arrows between points so I can show relationships.",
+      "acceptanceCriteria": [
+        "mousedown+mousemove shows live line preview with arrowhead",
+        "mouseup creates arrow element with start and end coordinates",
+        "Arrow renders as line with arrowhead at end",
+        "Element added to store on mouseup",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implement text element creation",
+      "description": "As a user, I want to add text labels to the canvas so I can annotate my drawings.",
+      "acceptanceCriteria": [
+        "Clicking canvas with Text tool shows a text input overlay",
+        "User types text and presses Enter or clicks outside to confirm",
+        "Creates text element at click position",
+        "Default font: sans-serif, 16px, black",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add element selection and movement",
+      "description": "As a user, I want to select and drag elements so I can reposition them.",
+      "acceptanceCriteria": [
+        "Select tool: clicking an element shows selection handles (outline + 4 corner handles)",
+        "Drag selected element to reposition it",
+        "Click empty area deselects",
+        "Only one element selected at a time",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add element deletion",
+      "description": "As a user, I want to delete selected elements so I can remove mistakes.",
+      "acceptanceCriteria": [
+        "Pressing Delete or Backspace key removes selected element from store",
+        "Pressing Escape deselects without deleting",
+        "No error when no element is selected",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add stroke color and width options",
+      "description": "As a user, I want to change stroke color and width so I can make my drawings visually distinct.",
+      "acceptanceCriteria": [
+        "Toolbar shows color picker (default palette: 6 colors) and stroke width selector (1, 2, 3, 4)",
+        "Changing color/width updates current tool settings",
+        "New elements use the selected color and width",
+        "Does not affect existing elements",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add undo/redo support",
+      "description": "As a user, I want to undo and redo actions so I can fix mistakes.",
+      "acceptanceCriteria": [
+        "Track history of store states (action-based: add/modify/delete)",
+        "Ctrl+Z undoes last action, Ctrl+Shift+Z redoes",
+        "Undo/redo buttons in toolbar",
+        "Max history: 50 states",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add localStorage persistence",
+      "description": "As a user, I want my whiteboard to persist between sessions so I don't lose work.",
+      "acceptanceCriteria": [
+        "Save elements array to localStorage on every store change (debounced 500ms)",
+        "Load from localStorage on page load",
+        "Handle empty/invalid localStorage gracefully (start with empty canvas)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add export as PNG image",
+      "description": "As a user, I want to export my whiteboard as a PNG image so I can share it.",
+      "acceptanceCriteria": [
+        "Add Export button to toolbar",
+        "Clicking renders canvas to a clean PNG (white background, all elements included)",
+        "Triggers browser download of PNG file",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
