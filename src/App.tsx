@@ -1,5 +1,11 @@
+import Canvas from './components/Canvas'
+
 function App() {
-  return <div className="w-full h-full bg-white" />
+  return (
+    <>
+      <Canvas />
+    </>
+  )
 }
 
 export default App
