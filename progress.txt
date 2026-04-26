@@ -1,0 +1,27 @@
+## Codebase Patterns
+- Canvas rendering uses HTML5 Canvas API with ctx.translate for export
+- Element hit-test uses point-to-segment distance for arrows/freehand
+- Store uses Zustand with history tracking for undo/redo (max 50 states)
+- localStorage auto-saves on every element mutation
+
+# Ralph Progress Log
+Started: 2026-04-26T04:45:00Z
+---
+
+## 2026-04-26 - All 14 User Stories Complete
+- Implemented full MVP whiteboard with Excalidraw-like functionality
+- Branch: ralph/mvp-whiteboard
+- All stories: US-001 through US-014, passes: true
+
+**Files changed:**
+- src/store/types.ts - Element types and ToolSettings
+- src/store/useStore.ts - Zustand store with undo/redo, localStorage, PNG export
+- src/components/Canvas.tsx - Canvas renderer with drawing, selection, drag, delete
+- src/components/Toolbar.tsx - Floating toolbar with tools, colors, widths, undo/redo, export
+- src/App.tsx - Keyboard shortcuts for undo/redo
+
+**Learnings:**
+- Tailwind v4 uses @import "tailwindcss" instead of @tailwind directives
+- Canvas hit-testing for freehand/arrows needs point-to-segment distance calculation
+- Drag offset tracking needed for smooth element repositioning
+- Zustand history pattern: store past[]/future[] arrays for undo/redo
