@@ -1,7 +1,48 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useStore, type Element, type Point, genId } from '../store'
 
-function renderElement(ctx: CanvasRenderingContext2D, element: Element) {
+function hitTest(element: Element, pos: Point): boolean {
+  if (element.type === 'rectangle') {
+    return (
+      pos.x >= element.x &&
+      pos.x <= element.x + element.width &&
+      pos.y >= element.y &&
+      pos.y <= element.y + element.height
+    )
+  }
+  if (element.type === 'freehand' && element.points) {
+    for (const p of element.points) {
+      if (Math.abs(p.x - pos.x) < 8 && Math.abs(p.y - pos.y) < 8) return true
+    }
+  }
+  if (element.type === 'arrow' && element.points && element.points.length >= 2) {
+    const a = element.points[0]
+    const b = element.points[element.points.length - 1]
+    const dist = pointToSegmentDistance(pos, a, b)
+    return dist < 8
+  }
+  if (element.type === 'text' && element.text) {
+    return (
+      pos.x >= element.x &&
+      pos.x <= element.x + element.width &&
+      pos.y >= element.y - 20 &&
+      pos.y <= element.y + element.height
+    )
+  }
+  return false
+}
+
+function pointToSegmentDistance(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y)
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq
+  t = Math.max(0, Math.min(1, t))
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+}
+
+function renderElement(ctx: CanvasRenderingContext2D, element: Element, isSelected: boolean) {
   ctx.strokeStyle = element.strokeColor
   ctx.lineWidth = element.strokeWidth
   ctx.lineCap = 'round'
@@ -11,6 +52,7 @@ function renderElement(ctx: CanvasRenderingContext2D, element: Element) {
     ctx.beginPath()
     ctx.rect(element.x, element.y, element.width, element.height)
     ctx.stroke()
+    if (isSelected) drawSelectionHandles(ctx, element.x, element.y, element.width, element.height)
   } else if (element.type === 'freehand' && element.points && element.points.length > 1) {
     ctx.beginPath()
     ctx.moveTo(element.points[0].x, element.points[0].y)
@@ -18,6 +60,10 @@ function renderElement(ctx: CanvasRenderingContext2D, element: Element) {
       ctx.lineTo(element.points[i].x, element.points[i].y)
     }
     ctx.stroke()
+    if (isSelected) {
+      const bounds = getPointsBounds(element.points)
+      drawSelectionHandles(ctx, bounds.x, bounds.y, bounds.w, bounds.h)
+    }
   } else if (element.type === 'arrow' && element.points && element.points.length >= 2) {
     const start = element.points[0]
     const end = element.points[element.points.length - 1]
@@ -39,14 +85,53 @@ function renderElement(ctx: CanvasRenderingContext2D, element: Element) {
       end.y - headLen * Math.sin(angle + Math.PI / 6),
     )
     ctx.stroke()
+    if (isSelected) {
+      const bounds = getPointsBounds(element.points)
+      drawSelectionHandles(ctx, bounds.x, bounds.y, bounds.w, bounds.h)
+    }
   } else if (element.type === 'text' && element.text) {
     ctx.fillStyle = element.strokeColor
     ctx.font = `${element.strokeWidth * 8}px sans-serif`
     ctx.fillText(element.text, element.x, element.y + element.height)
+    if (isSelected) {
+      drawSelectionHandles(ctx, element.x, element.y - 20, element.width, element.height + 20)
+    }
   }
 }
 
-// Draw a temporary preview element while dragging
+function drawSelectionHandles(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.strokeStyle = '#3b82f6'
+  ctx.lineWidth = 1
+  ctx.setLineDash([5, 3])
+  ctx.strokeRect(x - 4, y - 4, w + 8, h + 8)
+  ctx.setLineDash([])
+  const size = 6
+  const corners = [
+    { x: x - 4, y: y - 4 },
+    { x: x + w + 4, y: y - 4 },
+    { x: x - 4, y: y + h + 4 },
+    { x: x + w + 4, y: y + h + 4 },
+  ]
+  ctx.fillStyle = '#ffffff'
+  ctx.strokeStyle = '#3b82f6'
+  ctx.lineWidth = 1.5
+  for (const c of corners) {
+    ctx.fillRect(c.x - size / 2, c.y - size / 2, size, size)
+    ctx.strokeRect(c.x - size / 2, c.y - size / 2, size, size)
+  }
+}
+
+function getPointsBounds(points: Point[]) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const p of points) {
+    if (p.x < minX) minX = p.x
+    if (p.y < minY) minY = p.y
+    if (p.x > maxX) maxX = p.x
+    if (p.y > maxY) maxY = p.y
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+}
+
 function renderPreview(ctx: CanvasRenderingContext2D, tool: string, start: Point, end: Point, color: string, width: number) {
   ctx.strokeStyle = color
   ctx.lineWidth = width
@@ -91,12 +176,18 @@ function renderPreview(ctx: CanvasRenderingContext2D, tool: string, start: Point
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const elements = useStore((s) => s.elements)
+  const selectedId = useStore((s) => s.selectedId)
   const currentTool = useStore((s) => s.currentTool)
   const toolSettings = useStore((s) => s.toolSettings)
   const addElement = useStore((s) => s.addElement)
+  const setSelected = useStore((s) => s.setSelected)
+  const updateElement = useStore((s) => s.updateElement)
+  const deleteElement = useStore((s) => s.deleteElement)
 
   const isDrawing = useRef(false)
+  const isDragging = useRef(false)
   const startPos = useRef<Point>({ x: 0, y: 0 })
+  const dragOffset = useRef<Point>({ x: 0, y: 0 })
   const currentPoints = useRef<Point[]>([])
 
   const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
@@ -113,7 +204,7 @@ export default function Canvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     for (const element of elements) {
-      renderElement(ctx, element)
+      renderElement(ctx, element, element.id === selectedId)
     }
 
     // Draw preview while drawing
@@ -123,7 +214,7 @@ export default function Canvas() {
         : startPos.current
       renderPreview(ctx, currentTool, startPos.current, end, toolSettings.strokeColor, toolSettings.strokeWidth)
     }
-  }, [elements, currentTool, toolSettings])
+  }, [elements, selectedId, currentTool, toolSettings])
 
   useEffect(() => {
     draw()
@@ -142,10 +233,23 @@ export default function Canvas() {
     return () => window.removeEventListener('resize', handleResize)
   }, [draw])
 
-  const getPos = (e: React.MouseEvent) => ({
-    x: e.clientX,
-    y: e.clientY,
-  })
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (textPos) return // Don't handle keys when typing text
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault()
+        deleteElement(selectedId)
+      }
+      if (e.key === 'Escape') {
+        setSelected(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedId, textPos, deleteElement, setSelected])
+
+  const getPos = (e: React.MouseEvent) => ({ x: e.clientX, y: e.clientY })
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getPos(e)
@@ -155,7 +259,26 @@ export default function Canvas() {
       setTextValue('')
       return
     }
-    if (currentTool === 'select') return
+
+    if (currentTool === 'select') {
+      // Find element under cursor (reverse order for top-most)
+      for (let i = elements.length - 1; i >= 0; i--) {
+        if (hitTest(elements[i], pos)) {
+          setSelected(elements[i].id)
+          isDragging.current = true
+          startPos.current = pos
+          // Calculate offset for smooth dragging
+          const el = elements[i]
+          dragOffset.current = {
+            x: pos.x - el.x,
+            y: pos.y - el.y,
+          }
+          return
+        }
+      }
+      setSelected(null)
+      return
+    }
 
     isDrawing.current = true
     startPos.current = pos
@@ -163,8 +286,51 @@ export default function Canvas() {
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing.current) return
     const pos = getPos(e)
+
+    if (isDragging.current && selectedId) {
+      const deltaX = pos.x - startPos.current.x
+      const deltaY = pos.y - startPos.current.y
+
+      const el = elements.find((e) => e.id === selectedId)
+      if (el) {
+        if (el.type === 'arrow' && el.points) {
+          const newPoints = el.points.map((p) => ({
+            x: p.x + deltaX,
+            y: p.y + deltaY,
+          }))
+          updateElement(selectedId, {
+            x: el.x + deltaX,
+            y: el.y + deltaY,
+            points: newPoints,
+          })
+        } else if (el.type === 'freehand' && el.points) {
+          const newPoints = el.points.map((p) => ({
+            x: p.x + deltaX,
+            y: p.y + deltaY,
+          }))
+          updateElement(selectedId, {
+            x: el.x + deltaX,
+            y: el.y + deltaY,
+            points: newPoints,
+          })
+        } else if (el.type === 'text') {
+          updateElement(selectedId, {
+            x: el.x + deltaX,
+            y: el.y + deltaY,
+          })
+        } else {
+          updateElement(selectedId, {
+            x: el.x + deltaX,
+            y: el.y + deltaY,
+          })
+        }
+        startPos.current = pos
+      }
+      return
+    }
+
+    if (!isDrawing.current) return
     if (currentTool === 'freehand') {
       currentPoints.current.push(pos)
     }
@@ -172,6 +338,10 @@ export default function Canvas() {
   }
 
   const handleMouseUp = () => {
+    if (isDragging.current) {
+      isDragging.current = false
+      return
+    }
     if (!isDrawing.current) return
     isDrawing.current = false
 
@@ -179,10 +349,7 @@ export default function Canvas() {
       addElement({
         id: genId(),
         type: 'freehand',
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
+        x: 0, y: 0, width: 0, height: 0,
         points: [...currentPoints.current],
         strokeColor: toolSettings.strokeColor,
         strokeWidth: toolSettings.strokeWidth,
@@ -260,10 +427,7 @@ export default function Canvas() {
         onMouseUp={handleMouseUp}
       />
       {textPos && (
-        <div
-          className="fixed z-50"
-          style={{ left: textPos.x, top: textPos.y }}
-        >
+        <div className="fixed z-50" style={{ left: textPos.x, top: textPos.y }}>
           <input
             type="text"
             value={textValue}
